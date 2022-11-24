@@ -4,6 +4,8 @@ go 1.18
 
 require (
 	github.com/FISCO-BCOS/crypto v0.0.0-20200202032121-bd8ab0b5d4f1
+	github.com/aristanetworks/goarista v0.0.0-20210107181124-fad53805024e // indirect
+	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/caeret/logging v0.0.2
 	github.com/ethereum/go-ethereum v1.9.16
 	github.com/google/uuid v1.1.1
@@ -16,8 +18,6 @@ require (
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7 // indirect
-	github.com/aristanetworks/goarista v0.0.0-20210107181124-fad53805024e // indirect
-	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/caeret/zap v0.0.0-20221123150832-498451b361bc // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

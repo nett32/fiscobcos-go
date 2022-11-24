@@ -303,6 +303,14 @@ func (c *BoundContract) asyncTransact(opts *TransactOpts, contract *common.Addre
 	return signedTx, nil
 }
 
+func (c *BoundContract) GenerateSignedTx(opts *TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	input, err := c.abi.Pack(method, params...)
+	if err != nil {
+		return nil, err
+	}
+	return c.generateSignedTx(opts, &c.address, input)
+}
+
 func (c *BoundContract) generateSignedTx(opts *TransactOpts, contract *common.Address, input []byte) (*types.Transaction, error) {
 	rawTx, err := c.generateRawTx(opts, contract, input)
 	if err != nil {
