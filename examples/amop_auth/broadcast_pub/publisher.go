@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 	"github.com/FISCO-BCOS/go-sdk/conf"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -26,16 +26,16 @@ func main() {
 	for _, k := range publicKeysHex {
 		pubKeyBytes, err := hexutil.Decode(k)
 		if err != nil {
-			logrus.Fatalf("decode publicKey failed, err: %v\n", err)
+			log.Fatalf("decode publicKey failed, err: %v\n", err)
 		}
 		pubKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
 		if err != nil {
-			logrus.Fatalf("decompress pubkey failed, err: %v", err)
+			log.Fatalf("decompress pubkey failed, err: %v", err)
 		}
 		publicKeys = append(publicKeys, pubKey)
 	}
 	if len(os.Args) < 3 {
-		logrus.Fatal("the number of arguments is not equal 3")
+		log.Fatal("the number of arguments is not equal 3")
 	} else if len(os.Args) > 3 {
 		keys := 3
 		publicKeys = make([]*ecdsa.PublicKey, 0)
@@ -61,12 +61,12 @@ func main() {
 		IsSMCrypto: false, GroupID: 1, PrivateKey: privateKey, NodeURL: endpoint}
 	c, err := client.Dial(config)
 	if err != nil {
-		logrus.Fatalf("init publisher failed, err: %v\n", err)
+		log.Fatalf("init publisher failed, err: %v\n", err)
 	}
 
 	err = c.PublishPrivateTopic(topic, publicKeys)
 	if err != nil {
-		logrus.Fatalf("publish topic failed, err: %v\n", err)
+		log.Fatalf("publish topic failed, err: %v\n", err)
 	}
 	fmt.Println("publish topic success")
 	time.Sleep(3 * time.Second)
@@ -74,11 +74,11 @@ func main() {
 	message := "Hi, FISCO BCOS!"
 	go func() {
 		for i := 0; i < 1000; i++ {
-			logrus.Printf("publish message: %s ", message+" "+strconv.Itoa(i))
+			log.Printf("publish message: %s ", message+" "+strconv.Itoa(i))
 			err = c.BroadcastAMOPPrivateMsg(topic, []byte(message+" "+strconv.Itoa(i)))
 			time.Sleep(2 * time.Second)
 			if err != nil {
-				logrus.Printf("PushTopicDataRandom failed, err: %v\n", err)
+				log.Printf("PushTopicDataRandom failed, err: %v\n", err)
 			}
 		}
 	}()

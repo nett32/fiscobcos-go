@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -13,12 +14,11 @@ import (
 	"github.com/FISCO-BCOS/go-sdk/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		logrus.Fatalf("parameters are not enough, example \n%s 127.0.0.1:20200 hello", os.Args[0])
+		log.Fatalf("parameters are not enough, example \n%s 127.0.0.1:20200 hello", os.Args[0])
 	}
 	endpoint := os.Args[1]
 	privateKey, _ := hex.DecodeString("145e247e170ba3afd6ae97e88f00dbc976c2345d511b0f6713355d19d8b80b58")
@@ -30,16 +30,16 @@ func main() {
 		indent = "  "
 	)
 	for i := 0; i < 3; i++ {
-		logrus.Printf("%d try to connect\n", i)
+		log.Printf("%d try to connect\n", i)
 		c, err = client.Dial(config)
 		if err != nil {
-			logrus.Printf("init subscriber failed, err: %v, retrying\n", err)
+			log.Printf("init subscriber failed, err: %v, retrying\n", err)
 			continue
 		}
 		break
 	}
 	if err != nil {
-		logrus.Fatalf("init subscriber failed, err: %v\n", err)
+		log.Fatalf("init subscriber failed, err: %v\n", err)
 	}
 	var eventLogParams types.EventLogParams
 	eventLogParams.FromBlock = "1"
@@ -62,14 +62,14 @@ func main() {
 			fmt.Printf("logs marshalIndent error: %v", err)
 		}
 
-		logrus.Printf("received: %s\n", logRes)
-		logrus.Printf("received status: %d\n", status)
+		log.Printf("received: %s\n", logRes)
+		log.Printf("received status: %d\n", status)
 		queryTicker.Stop()
 		queryTicker = time.NewTicker(timeout)
 		done <- true
 	})
 	if err != nil {
-		logrus.Printf("subscribe event failed, err: %v\n", err)
+		log.Printf("subscribe event failed, err: %v\n", err)
 		return
 	}
 
@@ -80,16 +80,16 @@ func main() {
 		case <-done:
 			err := c.UnSubscribeEventLogs(id)
 			if err != nil {
-				logrus.Println("UnSubscribeEventLogs error!")
+				log.Println("UnSubscribeEventLogs error!")
 			}
 			c.Close()
-			logrus.Println("Done!")
+			log.Println("Done!")
 			os.Exit(0)
 		case <-queryTicker.C:
-			logrus.Printf("can't receive message after 10s, %s\n", time.Now().String())
+			log.Printf("can't receive message after 10s, %s\n", time.Now().String())
 			os.Exit(1)
 		case <-killSignal:
-			logrus.Println("user exit")
+			log.Println("user exit")
 			os.Exit(0)
 		}
 	}

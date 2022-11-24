@@ -4,11 +4,11 @@ package conf
 import (
 	"bytes"
 	"fmt"
+	"github.com/caeret/logging"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -39,7 +39,7 @@ func ParseConfigFile(cfgFile string) ([]Config, error) {
 	defer func() {
 		err = file.Close()
 		if err != nil {
-			logrus.Fatalf("close file failed, err: %v", err)
+			logging.Error(fmt.Sprintf("close file failed, err: %v", err))
 		}
 	}()
 
@@ -119,7 +119,7 @@ func ParseConfig(buffer []byte) ([]Config, error) {
 		} else if strings.EqualFold(connectionType, "channel") {
 			config.IsHTTP = false
 		} else {
-			logrus.Printf("Network.Type %s is not supported, use channel", connectionType)
+			logging.Warn(fmt.Sprintf("Network.Type %s is not supported, use channel", connectionType))
 		}
 		config.CAFile = viper.GetString("Network.CAFile")
 		config.Key = viper.GetString("Network.Key")

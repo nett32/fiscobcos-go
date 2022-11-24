@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"math/big"
-
-	"github.com/sirupsen/logrus"
 )
 
 // var iv = []uint32{0x7380166f, 0x4914b2b9, 0x172442d7,
@@ -65,31 +63,31 @@ func (sm3 *Context) cf(v, b []byte) []byte {
 	buf := bytes.NewBuffer(v)
 	err := binary.Read(buf, binary.BigEndian, &sm3.a)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.b)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.c)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.d)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.e)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.f)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Read(buf, binary.BigEndian, &sm3.g)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 
 	binary.Read(buf, binary.BigEndian, &sm3.h)
@@ -131,35 +129,35 @@ func (sm3 *Context) cf(v, b []byte) []byte {
 	retBuf := bytes.NewBuffer(ret)
 	err = binary.Write(retBuf, binary.BigEndian, sm3.a^A)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.b^B)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.c^C)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.d^D)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.e^E)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.f^F)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.g^G)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	err = binary.Write(retBuf, binary.BigEndian, sm3.h^H)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 
 	return retBuf.Bytes()
@@ -178,7 +176,7 @@ func splitB(b []byte) (w68 [68]uint32, w64 [64]uint32) {
 	for i := 0; i < 16; i++ {
 		err := binary.Read(buf, binary.BigEndian, &w68[i])
 		if err != nil {
-			logrus.Fatal(err)
+			panic(err)
 		}
 	}
 	for i := 16; i < 68; i++ {
@@ -199,13 +197,13 @@ func pad(src []byte) []byte {
 	buf := bytes.NewBuffer(src)
 	err := buf.WriteByte(paddingHeader)
 	if err != nil {
-		logrus.Fatal(err)
+		panic(err)
 	}
 	padLength -= 8
 	for padLength > 0 {
 		err = buf.WriteByte(0)
 		if err != nil {
-			logrus.Fatal(err)
+			panic(err)
 		}
 		padLength -= 8
 	}
