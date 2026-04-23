@@ -6,7 +6,7 @@ require (
 	github.com/FISCO-BCOS/crypto v0.0.0-20200202032121-bd8ab0b5d4f1
 	github.com/aristanetworks/goarista v0.0.0-20210107181124-fad53805024e // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
-	github.com/caeret/logging v0.0.2
+	github.com/caeret/logging v0.0.10
 	github.com/ethereum/go-ethereum v1.9.16
 	github.com/google/uuid v1.1.1
 	github.com/spf13/cobra v1.0.0
@@ -68,7 +68,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef // indirect
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
