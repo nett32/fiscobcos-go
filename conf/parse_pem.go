@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"os"
 )
 
 const (
@@ -26,21 +27,21 @@ var (
 
 // LoadECPrivateKeyFromPEM reads file, divides into key and certificates
 func LoadECPrivateKeyFromPEM(path string) ([]byte, string, error) {
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, "", err
 	}
 
 	block, _ := pem.Decode(raw)
 	if block == nil {
-		return nil, "", fmt.Errorf("Failure reading pem from \"%s\": %s", path, err)
+		return nil, "", fmt.Errorf("failure reading pem from \"%s\": block is nil", path)
 	}
 	if block.Type != "PRIVATE KEY" {
-		return nil, "", fmt.Errorf("Failure reading private key from \"%s\": %s", path, err)
+		return nil, "", fmt.Errorf("failure reading private key from \"%s\": not private key", path)
 	}
 	ecPirvateKey, curveName, err := parsePKCS8ECPrivateKey(block.Bytes)
 	if err != nil {
-		return nil, "", fmt.Errorf("Failure reading private key from \"%s\": %s", path, err)
+		return nil, "", fmt.Errorf("failure reading private key from \"%s\": %s", path, err)
 	}
 	return ecPirvateKey, curveName, nil
 }
@@ -54,10 +55,10 @@ func LoadECPublicKeyFromPEM(path string) ([]byte, string, error) {
 
 	block, _ := pem.Decode(raw)
 	if block == nil {
-		return nil, "", fmt.Errorf("Failure reading pem from \"%s\": %s", path, err)
+		return nil, "", fmt.Errorf("failure reading pem from \"%s\": block is nil", path)
 	}
 	if block.Type != "PUBLIC KEY" {
-		return nil, "", fmt.Errorf("Failure reading private key from \"%s\": %s", path, err)
+		return nil, "", fmt.Errorf("failure reading public key from \"%s\": not public key", path)
 	}
 	return parsePKIXPublicKey(block.Bytes)
 }
