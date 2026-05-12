@@ -22,8 +22,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/caeret/logging"
 	"io"
+	"log/slog"
 	"reflect"
 	"strings"
 	"sync"
@@ -219,7 +219,7 @@ func (c *jsonCodec) Write(ctx context.Context, v interface{}) error {
 	}
 	err := c.conn.SetWriteDeadline(deadline)
 	if err != nil {
-		logging.Info("fail to set write deadline.", "error", err)
+		slog.Info("fail to set write deadline.", "error", err)
 	}
 	return c.encode(v)
 }
@@ -230,7 +230,7 @@ func (c *jsonCodec) Close() {
 		close(c.closed)
 		err := c.conn.Close()
 		if err != nil {
-			logging.Warn("fail to close conn.", "error", err)
+			slog.Warn("fail to close conn.", "error", err)
 		}
 	})
 }

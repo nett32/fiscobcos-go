@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -34,7 +35,6 @@ import (
 
 	"github.com/FISCO-BCOS/crypto/tls"
 	"github.com/FISCO-BCOS/go-sdk/core/types"
-	"github.com/caeret/logging"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
@@ -177,7 +177,7 @@ type updateAuthTopicStatus struct {
 func newChannelMessage(msgType uint16, body []byte) (*channelMessage, error) {
 	id, err := uuid.NewUUID()
 	if err != nil {
-		logging.Warn(fmt.Sprintf("newChannelMessage error: %v", err))
+		slog.Warn(fmt.Sprintf("newChannelMessage error: %v", err))
 		return nil, err
 	}
 	idString := strings.ReplaceAll(id.String(), "-", "")
@@ -240,7 +240,7 @@ func (msg *channelMessage) Encode() []byte {
 		panic(fmt.Sprintf("encode Body error: %v", err))
 	}
 	if uint32(buf.Len()) != msg.length {
-		logging.Warn(fmt.Sprintf("%d != %d, buf is %v", buf.Len(), msg.length, buf.String()))
+		slog.Warn(fmt.Sprintf("%d != %d, buf is %v", buf.Len(), msg.length, buf.String()))
 		panic(fmt.Sprintf("encode error length error: %v", err))
 	}
 	return buf.Bytes()
@@ -251,31 +251,31 @@ func decodeChannelMessage(raw []byte) (*channelMessage, error) {
 	result := new(channelMessage)
 	err := binary.Read(buf, binary.BigEndian, &result.length)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	if uint32(len(raw)) < result.length {
 		return nil, errors.New("uncomplete message")
 	}
 	err = binary.Read(buf, binary.BigEndian, &result.typeN)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	var uuid [32]byte
 	err = binary.Read(buf, binary.LittleEndian, &uuid)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	result.uuid = string(uuid[:])
 
 	err = binary.Read(buf, binary.BigEndian, &result.errorCode)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	dataLength := result.length - messageHeaderLength
 	result.body = make([]byte, dataLength)
 	err = binary.Read(buf, binary.BigEndian, &result.body)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	return result, nil
 }
@@ -285,19 +285,19 @@ func decodeTopic(raw []byte) (*topicData, error) {
 	result := new(topicData)
 	err := binary.Read(buf, binary.LittleEndian, &result.length)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	topic := make([]byte, result.length-1)
 	err = binary.Read(buf, binary.LittleEndian, &topic)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	result.topic = string(topic)
 	dataLength := len(raw) - int(result.length)
 	result.data = make([]byte, dataLength)
 	err = binary.Read(buf, binary.LittleEndian, &result.data)
 	if err != nil {
-		logging.Warn("binary.Read failed.", "error", err)
+		slog.Warn("binary.Read failed.", "error", err)
 	}
 	return result, nil
 }
@@ -379,7 +379,7 @@ func DialChannelWithClient(endpoint string, config *tls.Config, groupID int) (*C
 			heartBeat: time.NewTicker(heartBeatInterval * time.Second)}
 		go ch.processMessages()
 		if err = ch.handshakeChannel(); err != nil {
-			logging.Error("handshake channel protocol failed, use default protocol version")
+			slog.Error("handshake channel protocol failed, use default protocol version")
 		}
 		ch.topicHandlers[blockNotifyPrefix+strconv.Itoa(groupID)] = nil
 		if err = ch.sendSubscribedTopics(); err != nil {
@@ -532,7 +532,7 @@ func (hc *channelSession) sendTransaction(ctx context.Context, msg interface{}) 
 	if respmsg.Error != nil {
 		return nil, fmt.Errorf("send transaction error, code=%d, message=%s", respmsg.Error.Code, respmsg.Error.Message)
 	}
-	//logging.Warn(fmt.Sprintf("sendTransaction reveived response,seq:%s message:%s\n ", rpcMsg.uuid, respmsg.Result))
+	//slog.Warn(fmt.Sprintf("sendTransaction reveived response,seq:%s message:%s\n ", rpcMsg.uuid, respmsg.Result))
 	<-receiptResponse.Notify
 	hc.mu.RLock()
 	receiptResponse = hc.receiptResponses[rpcMsg.uuid]
@@ -677,7 +677,7 @@ func (hc *channelSession) handshakeChannel() error {
 		return fmt.Errorf("parse handshake channel protocol response failed %w", err)
 	}
 	hc.nodeInfo = info
-	//logging.Warn(fmt.Sprintf("node info: %+v", info))
+	//slog.Warn(fmt.Sprintf("node info: %+v", info))
 	return nil
 }
 
@@ -830,23 +830,23 @@ func (hc *channelSession) publishPrivateTopic(topic string, publicKeys []*ecdsa.
 		var authInfo requestAuth
 		err := json.Unmarshal(data, &authInfo)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("unmarshal authInfo failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("unmarshal authInfo failed, err: %v", err))
 			return
 		}
 		randomData := generateRandomNum()
 		signature, err := hc.sendAMOPMsg(authInfo.TopicForCert, randomData)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("send message failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("send message failed, err: %v", err))
 			return
 		}
 		if len(signature) == 0 {
-			logging.Debug("signature is empty")
+			slog.Debug("signature is empty")
 			return
 		}
 		var checkResult = 1 // 1 is false
 		hw := sha3.NewLegacyKeccak256()
 		if _, err = hw.Write(randomData); err != nil {
-			logging.Warn(fmt.Sprintf("keccak256 failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("keccak256 failed, err: %v", err))
 			return
 		}
 		digest := hw.Sum(nil)
@@ -854,7 +854,7 @@ func (hc *channelSession) publishPrivateTopic(topic string, publicKeys []*ecdsa.
 			publicKeyBytes := crypto.FromECDSAPub(publicKeys[i])
 			if crypto.VerifySignature(publicKeyBytes, digest, signature[:len(signature)-1]) {
 				checkResult = 0
-				//logging.Debug(fmt.Sprintf("verify NodeID %v success", authInfo.NodeID))
+				//slog.Debug(fmt.Sprintf("verify NodeID %v success", authInfo.NodeID))
 				break
 			}
 		}
@@ -864,15 +864,15 @@ func (hc *channelSession) publishPrivateTopic(topic string, publicKeys []*ecdsa.
 		updateNodeTopicStatus.NodeID = authInfo.NodeID
 		jsonBytes, err := json.Marshal(updateNodeTopicStatus)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("nodeUpdateTopicStatus marshal failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("nodeUpdateTopicStatus marshal failed, err: %v", err))
 		}
 		newMessage, err := newChannelMessage(amopUpdateTopicStatus, jsonBytes)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("new topic message failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("new topic message failed, err: %v", err))
 		}
 		err = hc.sendMessageNoResponse(newMessage)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("send message no response failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("send message no response failed, err: %v", err))
 		}
 	}
 	hc.topicMu.Lock()
@@ -906,13 +906,13 @@ func (hc *channelSession) subscribePrivateTopic(topic string, privateKey *ecdsa.
 		// sign random number and send back
 		hw := sha3.NewLegacyKeccak256()
 		if _, err = hw.Write(data); err != nil {
-			logging.Warn(fmt.Sprintf("keccak256 failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("keccak256 failed, err: %v", err))
 			return
 		}
 		digest := hw.Sum(nil)
 		signature, err := crypto.Sign(digest, privateKey)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("sign random number failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("sign random number failed, err: %v", err))
 			return
 		}
 		*response = signature
@@ -954,7 +954,7 @@ func (hc *channelSession) broadcastAMOPPrivateMsg(topic string, data []byte) err
 func (hc *channelSession) processTopicMessage(msg *channelMessage) {
 	topic, err := decodeTopic(msg.body)
 	if err != nil {
-		//logging.Warn(fmt.Sprintf("decode topic failed: %+v", msg))
+		//slog.Warn(fmt.Sprintf("decode topic failed: %+v", msg))
 		return
 	}
 	hc.topicMu.RLock()
@@ -966,13 +966,13 @@ func (hc *channelSession) processTopicMessage(msg *channelMessage) {
 	}
 	responseMessage, err := newTopicMessage(topic.topic, *responseData, amopResponse)
 	if err != nil {
-		logging.Warn(fmt.Sprintf("newTopicMessage failed, err: %v", err))
+		slog.Warn(fmt.Sprintf("newTopicMessage failed, err: %v", err))
 		return
 	}
 	responseMessage.uuid = msg.uuid
 	err = hc.sendMessageNoResponse(responseMessage)
 	if err != nil {
-		logging.Warn(fmt.Sprintf("response message failed, uuid: %v, err: %v", msg.uuid, err))
+		slog.Warn(fmt.Sprintf("response message failed, uuid: %v, err: %v", msg.uuid, err))
 		return
 	}
 }
@@ -981,22 +981,22 @@ func (hc *channelSession) processAuthTopicMessage(msg *channelMessage) {
 	var requestAuthInfo requestAuth
 	err := json.Unmarshal(msg.body, &requestAuthInfo)
 	if err != nil {
-		//logging.Warn(fmt.Sprintf("unmarshal authInfo failed, err: %v", err))
+		//slog.Warn(fmt.Sprintf("unmarshal authInfo failed, err: %v", err))
 		return
 	}
 
 	responseMessage, err := newTopicMessage(authChannelPrefix+requestAuthInfo.TopicForCert, nil, amopResponse)
 	if err != nil {
-		//logging.Warn(fmt.Sprintf("err: %v", err))
+		//slog.Warn(fmt.Sprintf("err: %v", err))
 		return
 	}
 	responseMessage.uuid = msg.uuid
 	err = hc.sendMessageNoResponse(responseMessage)
 	if err != nil {
-		//logging.Warn("response message failed.", "erorr", err)
+		//slog.Warn("response message failed.", "erorr", err)
 		return
 	}
-	//logging.Warn(fmt.Sprintf("unsubscribed topic %s", requestAuthInfo.Topic))
+	//slog.Warn(fmt.Sprintf("unsubscribed topic %s", requestAuthInfo.Topic))
 	hc.topicMu.RLock()
 	handler, ok := hc.topicHandlers[pushChannelPrefix+requestAuthInfo.Topic]
 	hc.topicMu.RUnlock()
@@ -1016,7 +1016,7 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 	var eventLogResponse eventLogResponse
 	err := json.Unmarshal(msg.body, &eventLogResponse)
 	if err != nil {
-		logging.Warn(fmt.Sprintf("unmarshal eventLogResponse failed, err: %v", err))
+		slog.Warn(fmt.Sprintf("unmarshal eventLogResponse failed, err: %v", err))
 		return
 	}
 	logs := []types.Log{}
@@ -1025,12 +1025,12 @@ func (hc *channelSession) processEventLogMessage(msg *channelMessage) {
 		number, _ := strconv.Atoi(log.BlockNumber)
 		logIndex, err := hexToUint64(log.LogIndex)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("unmarshal logIndex failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("unmarshal logIndex failed, err: %v", err))
 			return
 		}
 		txIndex, err := hexToUint64(log.TransactionIndex)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("unmarshal TransactionIndex failed, err: %v", err))
+			slog.Warn(fmt.Sprintf("unmarshal TransactionIndex failed, err: %v", err))
 			return
 		}
 		topics := []common.Hash{}
@@ -1072,7 +1072,7 @@ func (hc *channelSession) processMessages() {
 			if hc.c != nil {
 				err := hc.c.Close()
 				if err != nil {
-					logging.Warn("close channel failed", "error", err)
+					slog.Warn("close channel failed", "error", err)
 				}
 				hc.c = nil
 			}
@@ -1120,7 +1120,7 @@ func (hc *channelSession) processMessages() {
 			for {
 				con, err := tls.Dial("tcp", hc.endpoint, hc.tlsConfig)
 				if err != nil {
-					logging.Warn(fmt.Sprintf("tls.Dial %v failed, err: %v", hc.endpoint, err))
+					slog.Warn(fmt.Sprintf("tls.Dial %v failed, err: %v", hc.endpoint, err))
 					time.Sleep(5 * time.Second)
 					continue
 				}
@@ -1130,17 +1130,17 @@ func (hc *channelSession) processMessages() {
 				hc.nodeInfo.Protocol = 1
 				go hc.processMessages()
 				if err = hc.handshakeChannel(); err != nil {
-					logging.Warn("handshake channel protocol failed, use default protocol version")
+					slog.Warn("handshake channel protocol failed, use default protocol version")
 				}
 				err = hc.sendSubscribedTopics() // re-subscribe topic
 				if err != nil {
-					logging.Error(fmt.Sprintf("re-subscriber topic failed, err: %v", err))
+					slog.Error(fmt.Sprintf("re-subscriber topic failed, err: %v", err))
 				}
 				// resubscribe contract event
 				for _, eventLogInfo := range hc.eventLogHandlers {
 					err = hc.sendSubscribedEvent(eventLogInfo.params)
 					if err != nil {
-						logging.Error(fmt.Sprintf("re-subscriber event failed, event: %+v, err: %v", *eventLogInfo.params, err))
+						slog.Error(fmt.Sprintf("re-subscriber event failed, event: %+v, err: %v", *eventLogInfo.params, err))
 					}
 				}
 				return
@@ -1154,7 +1154,7 @@ func (hc *channelSession) processMessages() {
 			if err != nil {
 				nerr, ok := err.(net.Error)
 				if !ok || !nerr.Timeout() {
-					logging.Warn(fmt.Sprintf("channel Read error:%v", err))
+					slog.Warn(fmt.Sprintf("channel Read error:%v", err))
 					hc.Reconnection()
 				}
 				continue
@@ -1162,7 +1162,7 @@ func (hc *channelSession) processMessages() {
 			hc.buf = append(hc.buf, receiveBuf[:b]...)
 			msg, err := decodeChannelMessage(hc.buf)
 			if err != nil {
-				logging.Warn(fmt.Sprintf("decodeChannelMessage error: %v", err))
+				slog.Warn(fmt.Sprintf("decodeChannelMessage error: %v", err))
 				continue
 			}
 			hc.buf = hc.buf[msg.length:]
@@ -1179,7 +1179,7 @@ func (hc *channelSession) processMessages() {
 			hc.mu.Unlock()
 			switch msg.typeN {
 			case rpcMessage, amopResponse, clientHandshake, clientRegisterEventLog, clientHeartbeat:
-				//logging.Debug(fmt.Sprintf("response type: %d, seq: %s, msg: %s", msg.typeN, msg.uuid, string(msg.body)))
+				//slog.Debug(fmt.Sprintf("response type: %d, seq: %s, msg: %s", msg.typeN, msg.uuid, string(msg.body)))
 			case transactionNotify:
 				hc.mu.Lock()
 				if receipt, ok := hc.receiptResponses[msg.uuid]; ok {
@@ -1219,12 +1219,12 @@ func (hc *channelSession) processMessages() {
 				go hc.processTopicMessage(msg)
 			case amopAuthTopic:
 				go hc.processAuthTopicMessage(msg)
-				//logging.Debug(fmt.Sprintf("response type: %d, seq: %s, msg: %s, err: %v", msg.typeN, msg.uuid, string(msg.body), err))
+				//slog.Debug(fmt.Sprintf("response type: %d, seq: %s, msg: %s, err: %v", msg.typeN, msg.uuid, string(msg.body), err))
 			case eventLogPush:
 				// use single goroutine to process event log message, better to use channel
 				hc.processEventLogMessage(msg)
 			default:
-				logging.Error(fmt.Sprintf("unknown message type: %d, msg: %+v", msg.typeN, msg))
+				slog.Error(fmt.Sprintf("unknown message type: %d, msg: %+v", msg.typeN, msg))
 			}
 		}
 	}
@@ -1235,19 +1235,19 @@ func (hc *channelSession) updateBlockNumber(msg *channelMessage) {
 	var groupID uint64
 	topic, err := decodeTopic(msg.body)
 	if err != nil {
-		logging.Warn(fmt.Sprintf("decodeTopic msg.body failed, err: %v", err))
+		slog.Warn(fmt.Sprintf("decodeTopic msg.body failed, err: %v", err))
 		return
 	}
 	if hc.nodeInfo.Protocol == 1 {
 		response := strings.Split(string(topic.data), ",")
 		blockNumber, err = strconv.ParseInt(response[1], 10, 32)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("v1 block notify parse blockNumber failed, %v", string(topic.data)))
+			slog.Warn(fmt.Sprintf("v1 block notify parse blockNumber failed, %v", string(topic.data)))
 			return
 		}
 		groupID, err = strconv.ParseUint(response[0], 10, 32)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("v1 block notify parse GroupID failed, %v", string(topic.data)))
+			slog.Warn(fmt.Sprintf("v1 block notify parse GroupID failed, %v", string(topic.data)))
 			return
 		}
 	} else {
@@ -1257,13 +1257,13 @@ func (hc *channelSession) updateBlockNumber(msg *channelMessage) {
 		}
 		err = json.Unmarshal(topic.data, &notify)
 		if err != nil {
-			logging.Warn(fmt.Sprintf("block notify parse blockNumber failed, %v", string(topic.data)))
+			slog.Warn(fmt.Sprintf("block notify parse blockNumber failed, %v", string(topic.data)))
 			return
 		}
 		blockNumber = notify.BlockNumber
 		groupID = notify.GroupID
 	}
-	//logging.Debug(fmt.Sprintf("blockNumber updated %d -> %d", hc.nodeInfo.blockNumber, blockNumber))
+	//slog.Debug(fmt.Sprintf("blockNumber updated %d -> %d", hc.nodeInfo.blockNumber, blockNumber))
 	hc.nodeInfo.blockNumber = blockNumber
 
 	if handler, ok := hc.blockNotifyHandlers[groupID]; ok {

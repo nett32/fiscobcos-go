@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/caeret/logging"
+	"log/slog"
 	"math/big"
 	"strconv"
 	"strings"
@@ -109,7 +109,7 @@ func (api *APIHandler) Call(ctx context.Context, groupID int, msg ethereum.CallM
 func (api *APIHandler) SendRawTransaction(ctx context.Context, groupID int, tx *types.Transaction) (*types.Receipt, error) {
 	data, err := rlp.EncodeToBytes(tx)
 	if err != nil {
-		logging.Debug(fmt.Sprintf("rlp encode tx error, err: %v", err))
+		slog.Debug(fmt.Sprintf("rlp encode tx error, err: %v", err))
 		return nil, err
 	}
 	var receipt *types.Receipt
@@ -131,9 +131,9 @@ func (api *APIHandler) SendRawTransaction(ctx context.Context, groupID int, tx *
 				if strings.Contains(errorStr, "connection refused") {
 					return nil, err
 				}
-				//logging.Warn(fmt.Sprintf("Receipt retrieval failed, err: %v", err))
+				//slog.Warn(fmt.Sprintf("Receipt retrieval failed, err: %v", err))
 			} else {
-				logging.Warn("Transaction not yet mined")
+				slog.Warn("Transaction not yet mined")
 			}
 			// Wait for the next round.
 			select {
@@ -165,7 +165,7 @@ func (api *APIHandler) SendRawTransaction(ctx context.Context, groupID int, tx *
 func (api *APIHandler) AsyncSendRawTransaction(ctx context.Context, groupID int, tx *types.Transaction, handler func(*types.Receipt, error)) error {
 	data, err := rlp.EncodeToBytes(tx)
 	if err != nil {
-		logging.Warn(fmt.Sprintf("rlp encode tx error, err: %v", err))
+		slog.Warn(fmt.Sprintf("rlp encode tx error, err: %v", err))
 		return err
 	}
 	if api.IsHTTP() {

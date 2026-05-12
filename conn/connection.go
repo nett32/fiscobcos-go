@@ -267,7 +267,7 @@ func (c *Connection) CallContext(ctx context.Context, result interface{}, method
 	case resp.Error != nil:
 		return resp.Error
 	case len(resp.Result) == 0:
-		//logging.Warn(fmt.Sprintf("result is null, %+v, err:%+v", resp, err))
+		//slog.Warn(fmt.Sprintf("result is null, %+v, err:%+v", resp, err))
 		return ErrNoResult
 	default:
 		return json.Unmarshal(resp.Result, &result)
@@ -380,7 +380,7 @@ func (c *Connection) reconnect(ctx context.Context) error {
 	}
 	newconn, err := c.reconnectFunc(ctx)
 	if err != nil {
-		//logging.Warn("RPC client reconnect failed", "error", err)
+		//slog.Warn("RPC client reconnect failed", "error", err)
 		return err
 	}
 	select {
